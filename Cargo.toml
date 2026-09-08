@@ -14,6 +14,6 @@ categories = ["concurrency"]
 
 [dependencies]
 log = "0.4"
-seda_bus = { path = "../seda-bus-rust" }
+seda_bus = { path = "../../seda-bus/seda-bus-rust" }
 
 [dev-dependencies]
