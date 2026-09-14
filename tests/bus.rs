@@ -3,7 +3,7 @@ use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use seda_bus::Envelope;
+use seda_bus::{make_envelope, Envelope};
 use service_bus::{Service, ServiceBus, ServiceContext, ServiceCore, ServiceStatus};
 
 struct Recorder {
@@ -111,7 +111,7 @@ fn routes_envelope_and_fires_callback() {
     bus.await_running(Duration::from_secs(2), &["recorder"]);
 
     let (tx, rx) = channel::<String>();
-    let env = Envelope::new("recorder", b"hi".to_vec());
+    let env = make_envelope("recorder", Some("hi".into()), []);
     let id = env.id.clone();
     bus.send_with_callback(env, move |e| {
         let _ = tx.send(e.id.clone());
@@ -133,7 +133,7 @@ fn routing_slip_walks_services_in_order() {
     bus.await_running(Duration::from_secs(2), &["a", "b"]);
 
     let (tx, rx) = channel::<()>();
-    let env = Envelope::new("a", b"x".to_vec()).with_slip(["b"]);
+    let env = make_envelope("a", Some("x".into()), ["b".to_string()]);
     let id = env.id.clone();
     bus.send_with_callback(env, move |_| {
         let _ = tx.send(());
@@ -242,9 +242,9 @@ fn control_command_over_the_bus() {
     bus.register(rec); // registered, not started
     assert!(!bus.is_running("recorder"));
 
-    let env = Envelope::new("recorder", Vec::new())
-        .with_header("command", "start")
-        .with_header("service", "recorder");
+    let mut env = make_envelope("recorder", None, []);
+    env.set_header("command", "start".into());
+    env.set_header("service", "recorder".into());
     bus.send(env);
     assert!(bus.await_running(Duration::from_secs(2), &["recorder"]));
 

@@ -465,17 +465,22 @@ impl ServiceBus {
     }
 
     fn maybe_command(&self, env: &Envelope) {
-        let Some(cmd) = env.headers.get("command") else {
+        // env.headers is a serde_json::Map<String, Value> (ra-common's
+        // Envelope, since seda-bus-rust's 2026-09-11 rewire) - not the
+        // HashMap<String, String> this function was originally written
+        // against, so a header value has to be read out as a JSON string,
+        // not compared directly.
+        let Some(cmd) = env.headers.get("command").and_then(|v| v.as_str()) else {
             return;
         };
-        if !CONTROL_COMMANDS.contains(&cmd.as_str()) {
+        if !CONTROL_COMMANDS.contains(&cmd) {
             return;
         }
-        let Some(name) = env.headers.get("service") else {
+        let Some(name) = env.headers.get("service").and_then(|v| v.as_str()) else {
             warn!("control command {cmd:?} with no headers[\"service\"]");
             return;
         };
-        match cmd.as_str() {
+        match cmd {
             "start" => {
                 self.start_service(name);
             }

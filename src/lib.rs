@@ -12,7 +12,7 @@
 //!
 //! ```
 //! use service_bus::{Service, ServiceBus, ServiceCore, ServiceStatus};
-//! use seda_bus::Envelope;
+//! use seda_bus::{envelope_payload, make_envelope, Envelope};
 //! use std::sync::{Arc, mpsc::channel};
 //! use std::time::Duration;
 //!
@@ -24,7 +24,8 @@
 //!     fn as_any(&self) -> &dyn std::any::Any { self }
 //!     fn start(&self) -> bool { self.core.set_status(ServiceStatus::Running); true }
 //!     fn handle(&self, env: &mut Envelope) -> bool {
-//!         let _ = self.tx.send(String::from_utf8_lossy(&env.payload).into_owned());
+//!         let payload = envelope_payload(env).and_then(|v| v.as_str()).unwrap_or_default();
+//!         let _ = self.tx.send(payload.to_string());
 //!         true
 //!     }
 //! }
@@ -35,7 +36,7 @@
 //! bus.register_and_start_service(Arc::new(Echo { core: ServiceCore::new("echo"), tx }));
 //! bus.await_running(Duration::from_secs(2), &["echo"]);
 //!
-//! bus.send(Envelope::new("echo", b"hello".to_vec()));
+//! bus.send(make_envelope("echo", Some("hello".into()), []));
 //! assert_eq!(rx.recv_timeout(Duration::from_secs(2)).unwrap(), "hello");
 //! bus.graceful_shutdown();
 //! ```

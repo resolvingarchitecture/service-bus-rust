@@ -7,7 +7,7 @@ use std::sync::mpsc::channel;
 use std::sync::Arc;
 use std::time::Duration;
 
-use seda_bus::Envelope;
+use seda_bus::{envelope_payload, make_envelope, set_payload, Envelope};
 use service_bus::{Service, ServiceBus, ServiceContext, ServiceCore, ServiceStatus};
 
 struct Uppercase {
@@ -31,7 +31,11 @@ impl Service for Uppercase {
         true
     }
     fn handle(&self, env: &mut Envelope) -> bool {
-        env.payload.make_ascii_uppercase();
+        let upper = envelope_payload(env)
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_uppercase();
+        set_payload(env, upper.into());
         true
     }
 }
@@ -58,8 +62,9 @@ impl Service for Printer {
         true
     }
     fn handle(&self, env: &mut Envelope) -> bool {
-        let text = String::from_utf8_lossy(&env.payload).into_owned();
-        println!("  [{}] {text}", env.headers.get("from").map(String::as_str).unwrap_or("?"));
+        let text = envelope_payload(env).and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let from = env.header("from").and_then(|v| v.as_str()).unwrap_or("?");
+        println!("  [{from}] {text}");
         let _ = self.tx.send(text);
         true
     }
@@ -88,11 +93,9 @@ fn main() {
     );
 
     for word in ["alpha", "bravo", "charlie"] {
-        bus.send(
-            Envelope::new("uppercase", word.as_bytes().to_vec())
-                .with_slip(["printer"])
-                .with_header("from", "demo"),
-        );
+        let mut env = make_envelope("uppercase", Some(word.into()), ["printer".to_string()]);
+        env.set_header("from", "demo".into());
+        bus.send(env);
     }
     for _ in 0..3 {
         let _ = rx.recv_timeout(Duration::from_secs(2));
