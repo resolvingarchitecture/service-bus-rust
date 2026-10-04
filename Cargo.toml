@@ -1,11 +1,11 @@
 [package]
 name = "service_bus"
 version = "0.1.0"
-authors = ["Brian Taylor <brian@resolvingarchitecture.io>"]
+authors = ["Brian Taylor <brian@resolvingarchitecture.dev>"]
 license = "MIT"
 edition = "2021"
 description = "Service lifecycle management and discovery over a seda-bus"
-homepage = "https://resolvingarchitecture.io"
+homepage = "https://resolvingarchitecture.dev"
 documentation = "https://docs.rs/service_bus"
 repository = "https://github.com/resolvingarchitecture/service-bus-rust"
 readme = "README.md"
